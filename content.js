@@ -134,3 +134,54 @@ function createButton(def) {
 
   return btn;
 }
+
+/** ボタンを包むコンテナのID（重複注入防止用） */
+const CONTAINER_ID = 'cwt-toolbar-container';
+
+/**
+ * ツールバーにボタンを注入する。
+ * 既に注入済みの場合は何もしない。
+ *
+ * @param {Element} toolbar - ボタンを挿入するツールバー要素
+ */
+function injectButtons(toolbar) {
+  if (document.getElementById(CONTAINER_ID)) return;
+
+  const container = document.createElement('span');
+  container.id = CONTAINER_ID;
+  container.style.cssText = 'display:inline-flex;align-items:center;';
+
+  BUTTONS.forEach((def) => container.appendChild(createButton(def)));
+
+  // ツールバーの先頭に挿入（絵文字ボタンの前）
+  toolbar.insertBefore(container, toolbar.firstChild);
+}
+
+/**
+ * ChatWorkのツールバー要素を探す。
+ * 見つかればinjectButtonsを呼ぶ。
+ */
+function tryInject() {
+  // ChatWorkのツールバーセレクタ候補（DOM変更時はここを更新）
+  const toolbar =
+    document.querySelector('#_sendTool') ||
+    document.querySelector('[class*="chatInput"] [class*="toolbar"]') ||
+    document.querySelector('[class*="messageInput"] [class*="tool"]') ||
+    document.querySelector('._sendTool') ||
+    null;
+
+  if (toolbar) injectButtons(toolbar);
+}
+
+/** MutationObserverでSPA遷移・DOM変化を監視して再注入 */
+const observer = new MutationObserver(() => {
+  // コンテナが消えていたら再注入
+  if (!document.getElementById(CONTAINER_ID)) {
+    tryInject();
+  }
+});
+
+observer.observe(document.body, { childList: true, subtree: true });
+
+// 初回実行
+tryInject();
