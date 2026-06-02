@@ -1,13 +1,20 @@
 'use strict';
 
+// Reactのvalue setterをキャッシュ（nativeValueSetterハック）
+const nativeSetter = Object.getOwnPropertyDescriptor(
+  window.HTMLTextAreaElement.prototype,
+  'value'
+).set;
+
 /**
  * ChatWorkのtextareaにテキストをカーソル位置へ挿入し、
  * ReactのonChangeも発火させてUIを同期する。
+ * 選択範囲がある場合は選択テキストが before+after に置換される。
  *
  * @param {HTMLTextAreaElement} textarea
  * @param {string} before - カーソル前に挿入するテキスト
  * @param {string} after  - カーソル後に挿入するテキスト（省略可）
- * @param {number} cursorOffset - beforeの末尾からのカーソルオフセット（0=beforeとafterの境界）
+ * @param {number} cursorOffset - beforeの末尾から左に戻すステップ数（0=afterの直前）
  */
 function insertAtCursor(textarea, before, after = '', cursorOffset = 0) {
   const start = textarea.selectionStart;
@@ -18,15 +25,14 @@ function insertAtCursor(textarea, before, after = '', cursorOffset = 0) {
   const newCursor = start + before.length - cursorOffset;
 
   // Reactの内部stateも更新するためnativeValueSetterを使う
-  const nativeSetter = Object.getOwnPropertyDescriptor(
-    window.HTMLTextAreaElement.prototype,
-    'value'
-  ).set;
   nativeSetter.call(textarea, newValue);
 
+  // setSelectionRangeはReact再レンダリング後に適用するためdispatch後にdeferする
   textarea.dispatchEvent(new Event('input', { bubbles: true }));
-  textarea.setSelectionRange(newCursor, newCursor);
-  textarea.focus();
+  Promise.resolve().then(() => {
+    textarea.setSelectionRange(newCursor, newCursor);
+    textarea.focus();
+  });
 }
 
 /**
@@ -38,7 +44,6 @@ function findTextarea() {
   return (
     document.querySelector('#_chatText') ||
     document.querySelector('textarea[name="message"]') ||
-    document.querySelector('[data-testid="message-input"] textarea') ||
-    null
+    document.querySelector('[data-testid="message-input"] textarea')
   );
 }
