@@ -145,7 +145,8 @@ const CONTAINER_ID = 'cwt-toolbar-container';
  * @param {Element} toolbar - ボタンを挿入するツールバー要素
  */
 function injectButtons(toolbar) {
-  if (document.getElementById(CONTAINER_ID)) return;
+  // toolbarスコープで確認することでSPA遷移後の新しいtoolbarへの再注入も正しく機能する
+  if (toolbar.querySelector(`#${CONTAINER_ID}`)) return;
 
   const container = document.createElement('span');
   container.id = CONTAINER_ID;
@@ -163,6 +164,7 @@ function injectButtons(toolbar) {
  */
 function tryInject() {
   // ChatWorkのツールバーセレクタ候補（DOM変更時はここを更新）
+  // #_sendTool はIDなので最も安定。以降はクラスベースのフォールバック
   const toolbar =
     document.querySelector('#_sendTool') ||
     document.querySelector('[class*="chatInput"] [class*="toolbar"]') ||
@@ -174,11 +176,15 @@ function tryInject() {
 }
 
 /** MutationObserverでSPA遷移・DOM変化を監視して再注入 */
+let injectTimer = null;
 const observer = new MutationObserver(() => {
-  // コンテナが消えていたら再注入
-  if (!document.getElementById(CONTAINER_ID)) {
+  if (document.getElementById(CONTAINER_ID)) return;
+  // 連続DOM変化によるselector多重発火をデバウンスで抑制
+  if (injectTimer) return;
+  injectTimer = setTimeout(() => {
+    injectTimer = null;
     tryInject();
-  }
+  }, 50);
 });
 
 observer.observe(document.body, { childList: true, subtree: true });
