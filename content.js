@@ -163,12 +163,11 @@ function injectButtons(toolbar) {
  * 見つかればinjectButtonsを呼ぶ。
  */
 function tryInject() {
-  // ChatWorkのツールバーセレクタ候補（DOM変更時はここを更新）
-  // #_sendTool はIDなので最も安定。以降はクラスベースのフォールバック
+  // ChatWorkのツールバー（絵文字・ファイルボタンを含むUL要素）
+  // #_chatSendArea ul が最も安定したセレクタ（2024年以降のReact版ChatWork）
   const toolbar =
+    document.querySelector('#_chatSendArea ul') ||
     document.querySelector('#_sendTool') ||
-    document.querySelector('[class*="chatInput"] [class*="toolbar"]') ||
-    document.querySelector('[class*="messageInput"] [class*="tool"]') ||
     document.querySelector('._sendTool') ||
     null;
 
