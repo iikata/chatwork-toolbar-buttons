@@ -96,7 +96,12 @@ function createButton(def) {
   btn.id = def.id;
   btn.type = 'button';
   btn.title = def.title;
-  btn.innerHTML = def.icon + `<span style="margin-left:3px;font-size:11px;">${def.label}</span>`;
+  const iconWrapper = document.createElement('span');
+  iconWrapper.innerHTML = def.icon;
+  const labelSpan = document.createElement('span');
+  labelSpan.style.cssText = 'margin-left:3px;font-size:11px;';
+  labelSpan.textContent = def.label;
+  btn.append(...iconWrapper.childNodes, labelSpan);
   btn.style.cssText = [
     'display:inline-flex',
     'align-items:center',
